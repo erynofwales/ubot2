@@ -1,3 +1,8 @@
+ubot2
+=====
+
+A Slack bot written with `python-rtmbot` (see below).
+
 python-rtmbot
 =============
 
