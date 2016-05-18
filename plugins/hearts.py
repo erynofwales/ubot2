@@ -69,7 +69,7 @@ def find_operator(text):
 def top5():
     data = read_data()
     items = [(score, name) for name, score in data.items()]
-    items.sort()
+    items.sort(key=lambda item: item[0], reverse=True)
     out = ''
     for idx in range(5):
         try:
