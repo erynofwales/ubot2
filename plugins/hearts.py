@@ -37,7 +37,6 @@ def process_message(data):
             outputs.append([data['channel'], "No score for _{}_.".format(name)])
         return
 
-    LOGGER.info('Processing message: %s', text)
     score, name = calculate_score_and_find_operators(text)
     if score is not None:
         LOGGER.info('Adding %s to %s', score, name)
