@@ -9,10 +9,8 @@ import re
 
 HEARTS_FILE = 'hearts.json'
 
-PLUSES = {'prefix': ['++', '<3', '&lt;3', ':heart:', ':yellow_heart:', ':green_heart:',  ':blue_heart:', ':purple_heart:', '❤️', '💛', '💚', '💙', '💜'],
-          'suffix': ['++', '<3', '&lt;3', ':heart:', ':yellow_heart:', ':green_heart:',  ':blue_heart:', ':purple_heart:', '❤️', '💛', '💚', '💙', '💜']}
-MINUSES = {'prefix': ['--', '–', '—', '</3', '&lt;/3', ':broken_heart:', '💔'],
-           'suffix': ['--', '–', '—', '</3', '&lt;/3', ':broken_heart:', '💔']}
+PLUSES = ['++', '<3', '&lt;3', ':heart:', ':yellow_heart:', ':green_heart:',  ':blue_heart:', ':purple_heart:', '❤️', '💛', '💚', '💙', '💜']
+MINUSES = ['--', '–', '—', '</3', '&lt;/3', ':broken_heart:', '💔']
 
 LOGGER = logging.getLogger('hearts')
 
@@ -53,17 +51,23 @@ def calculate_score_and_find_operators(text):
     original_text = text
     score = 0
 
-    times, text = _do_operators(text, PLUSES['prefix'], is_prefix=True)
-    score += times
+    while True:
+        found = False
 
-    times, text = _do_operators(text, PLUSES['suffix'], is_prefix=False)
-    score += times
+        op, is_prefix = has_operator(text, PLUSES)
+        if op:
+            text = strip_operator(text, op, is_prefix)
+            score += 1
+            found = True
 
-    times, text = _do_operators(text, MINUSES['prefix'], is_prefix=True)
-    score -= times
+        op, is_prefix = has_operator(text, MINUSES)
+        if op:
+            text = strip_operator(text, op, is_prefix)
+            score -= 1
+            found = True
 
-    times, text = _do_operators(text, MINUSES['suffix'], is_prefix=False)
-    score -= times
+        if not found:
+            break
 
     did_change = original_text != text
     if did_change:
@@ -71,23 +75,12 @@ def calculate_score_and_find_operators(text):
     else:
         return None, None
 
-def _do_operators(text, operators, is_prefix):
-    times = 0
-    length = 0
-    check_func = has_prefix if is_prefix else has_suffix
-    while True:
-        op = check_func(text, operators)
-        if not op:
-            break
-        LOGGER.info('Found operator: {} (prefix = {})'.format(op, is_prefix))
-        times += 1
-        op_len = len(op)
-        length += op_len
-        if is_prefix:
-            text = text[op_len:].lstrip()
-        else:
-            text = text[:-op_len].rstrip()
-    return times, text
+def strip_operator(text, operator, is_prefix):
+    len_op = len(operator)
+    if is_prefix:
+        return text[len_op:].lstrip()
+    else:
+        return text[:-len_op].rstrip()
 
 def top5():
     data = read_data()
@@ -133,14 +126,10 @@ def write_data(obj):
     with open(HEARTS_FILE, 'w') as f:
         json.dump(obj, f, sort_keys=True, indent=4)
 
-def has_prefix(text, prefixes):
-    for p in prefixes:
-        if text.startswith(p):
-            return p
-    return None
-
-def has_suffix(text, suffixes):
-    for s in suffixes:
-        if text.endswith(s):
-            return s
-    return None
+def has_operator(text, operators):
+    for op in operators:
+        if text.startswith(op):
+            return op, True
+        elif text.endswith(op):
+            return op, False
+    return None, None
