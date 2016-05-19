@@ -3,21 +3,24 @@
 # Eryn Wells <eryn@erynwells.me>
 
 import json
+import logging
 import os.path
 import re
 
 HEARTS_FILE = 'hearts.json'
 
-PLUSES = {'prefix': ['++', '<3', ':heart:', '❤️'],
-          'suffix': ['++']}
-MINUSES = {'prefix': ['--', '–', '—', '</3', ':broken_heart:', '💔'],
-           'suffix': ['--']}
+PLUSES = {'prefix': ['++', '<3', '&lt;3', ':heart:', ':yellow_heart:', ':green_heart:',  ':blue_heart:', ':purple_heart:', '❤️', '💛', '💚', '💙', '💜'],
+          'suffix': ['++', '<3', '&lt;3', ':heart:', ':yellow_heart:', ':green_heart:',  ':blue_heart:', ':purple_heart:', '❤️', '💛', '💚', '💙', '💜']}
+MINUSES = {'prefix': ['--', '–', '—', '</3', '&lt;/3', ':broken_heart:', '💔'],
+           'suffix': ['--', '–', '—', '</3', '&lt;/3', ':broken_heart:', '💔']}
+
+LOGGER = logging.getLogger('hearts')
 
 outputs = []
 
 def process_message(data):
     try:
-        text = data['text']
+        text = data['text'].strip()
     except KeyError:
         # TODO: Make this better.
         return
@@ -36,35 +39,55 @@ def process_message(data):
             outputs.append([data['channel'], "No score for _{}_.".format(name)])
         return
 
-    # TODO: Lots of duplicated code below. Make it better.
-    operator, prefix, increment = find_operator(text)
-    if operator:
-        len_operator = len(operator)
-        if prefix:
-            name = text[len_operator:].strip()
+    LOGGER.info('Processing message: %s', text)
+    score, name = calculate_score_and_find_operators(text)
+    if score is not None:
+        LOGGER.info('Adding %s to %s', score, name)
+        if score:
+            score = update_item(name, score)
+            outputs.append([data['channel'], '_{}_ now has a score of {}.'.format(name, score)])
         else:
-            name = text[:-len_operator].strip()
-        score = update_item(name, increment)
-        outputs.append([data['channel'], '_{}_ now has a score of {}.'.format(name, score)])
+            outputs.append([data['channel'], 'No score change for _{}_.'.format(name)])
 
-def find_operator(text):
-    prefix_increment = has_prefix(text, PLUSES['prefix'])
-    if prefix_increment:
-        return prefix_increment, True, True
+def calculate_score_and_find_operators(text):
+    original_text = text
+    score = 0
 
-    suffix_increment = has_suffix(text, PLUSES['suffix'])
-    if suffix_increment:
-        return suffix_increment, False, True
+    times, text = _do_operators(text, PLUSES['prefix'], is_prefix=True)
+    score += times
 
-    prefix_decrement = has_prefix(text, MINUSES['prefix'])
-    if prefix_decrement:
-        return prefix_decrement, True, False
+    times, text = _do_operators(text, PLUSES['suffix'], is_prefix=False)
+    score += times
 
-    suffix_decrement = has_suffix(text, MINUSES['suffix'])
-    if suffix_decrement:
-        return suffix_decrement, False, False
+    times, text = _do_operators(text, MINUSES['prefix'], is_prefix=True)
+    score -= times
 
-    return None, None, None
+    times, text = _do_operators(text, MINUSES['suffix'], is_prefix=False)
+    score -= times
+
+    did_change = original_text != text
+    if did_change:
+        return score, text
+    else:
+        return None, None
+
+def _do_operators(text, operators, is_prefix):
+    times = 0
+    length = 0
+    check_func = has_prefix if is_prefix else has_suffix
+    while True:
+        op = check_func(text, operators)
+        if not op:
+            break
+        LOGGER.info('Found operator: {} (prefix = {})'.format(op, is_prefix))
+        times += 1
+        op_len = len(op)
+        length += op_len
+        if is_prefix:
+            text = text[op_len:].lstrip()
+        else:
+            text = text[:-op_len].rstrip()
+    return times, text
 
 def top5():
     data = read_data()
@@ -84,7 +107,7 @@ def update_item(name, increment):
     score = data.get(name)
     if not score:
         score = 0
-    score += 1 if increment else -1
+    score += increment
     data[name] = score
     write_data(data)
     return score
