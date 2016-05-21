@@ -38,7 +38,7 @@ def process_message(data):
         return
 
     score, name = calculate_score_and_find_operators(text)
-    if score is not None:
+    if score is not None and name:
         LOGGER.info('Adding %s to %s', score, name)
         if score:
             score = update_item(name, score)
