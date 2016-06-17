@@ -81,6 +81,14 @@ def strip_operator(text, operator, is_prefix):
     else:
         return text[:-len_op].rstrip()
 
+def has_operator(text, operators):
+    for op in operators:
+        if text.startswith(op):
+            return op, True
+        elif text.endswith(op):
+            return op, False
+    return None, None
+
 def top5():
     data = read_data()
     items = [(score, name) for name, score in data.items()]
@@ -94,15 +102,9 @@ def top5():
             break
     return out
 
-def update_item(name, increment):
-    data = read_data()
-    score = data.get(name)
-    if not score:
-        score = 0
-    score += increment
-    data[name] = score
-    write_data(data)
-    return score
+#
+# Persistence
+#
 
 def erase_score(name):
     data = read_data()
@@ -125,10 +127,13 @@ def write_data(obj):
     with open(HEARTS_FILE, 'w') as f:
         json.dump(obj, f, sort_keys=True, indent=4)
 
-def has_operator(text, operators):
-    for op in operators:
-        if text.startswith(op):
-            return op, True
-        elif text.endswith(op):
-            return op, False
-    return None, None
+def update_item(name, increment):
+    data = read_data()
+    score = data.get(name)
+    if not score:
+        score = 0
+    score += increment
+    data[name] = score
+    write_data(data)
+    return score
+
