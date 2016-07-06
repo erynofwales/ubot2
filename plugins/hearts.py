@@ -73,11 +73,12 @@ def calculate_score_and_find_operators(text):
         if not found:
             break
 
-    if text.endswith(':'):
-        text = text[:-1]
 
     did_change = original_text != text
     if did_change:
+        # Strip the trailing :
+        if text.endswith(':'):
+            text = text[:-1]
         return score, text
     else:
         return None, None
