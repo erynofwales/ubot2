@@ -28,6 +28,11 @@ def process_message(data):
         outputs.append([data['channel'], scores])
         return
 
+    if text == '!bottom5':
+        scores = bottom5()
+        outputs.append([data['channel'], scores])
+        return
+
     if text.startswith('!erase'):
         name = text[len('!erase'):].strip()
         success = erase_score(name)
@@ -68,6 +73,9 @@ def calculate_score_and_find_operators(text):
         if not found:
             break
 
+    if text.endswith(':'):
+        text = text[:-1]
+
     did_change = original_text != text
     if did_change:
         return score, text
@@ -98,6 +106,19 @@ def top5():
         try:
             item = items[idx]
             out += '{}. _{}_ : {}\n'.format(idx+1, item[1], item[0])
+        except IndexError:
+            break
+    return out
+
+def bottom5():
+    data = read_data()
+    items = [(score, name) for name, score in data.items()]
+    items.sort(key=lambda item: item[0])
+    out = ''
+    for idx in range(4, -1, -1):
+        try:
+            item = items[idx]
+            out += '{}. _{}_ : {}\n'.format(len(items)-idx, item[1], item[0])
         except IndexError:
             break
     return out
