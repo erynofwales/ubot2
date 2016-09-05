@@ -12,3 +12,5 @@ tests/.cache
 
 # Persistence for the hearts plugin.
 hearts.json
+# Persistence for the cookie plugin.
+pins.*.json
