@@ -40,7 +40,7 @@ class RtmBot(object):
         log_file = config.get('LOGFILE', 'rtmbot.log')
         logging.basicConfig(filename=log_file,
                             level=logging.INFO,
-                            format='%(asctime)s %(message)s')
+                            format='%(asctime)s %(module)s %(levelname)s: %(message)s')
         logging.info('Initialized in: {}'.format(self.directory))
         self.debug = self.config.get('DEBUG', False)
 
