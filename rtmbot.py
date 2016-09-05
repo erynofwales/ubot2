@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 
 import yaml
 from rtmbot import RtmBot
+import service
 
 
 def parse_args():
@@ -18,7 +19,10 @@ def parse_args():
 
 # load args with config path
 args = parse_args()
-config = yaml.load(open(args.config or 'rtmbot.conf', 'r'))
+config = None
+with open(args.config or 'rtmbot.conf', 'r') as f:
+    config = yaml.load(f)
+service.slack = service.SlackService(config.get('SLACK_TOKEN'))
 bot = RtmBot(config)
 try:
     bot.start()
