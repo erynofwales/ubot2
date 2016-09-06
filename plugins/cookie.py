@@ -12,7 +12,7 @@ from service import slack
 
 LOGGER = logging.getLogger('cookie')
 MAX_PINS = 100
-CHANNELS = []
+CHANNELS = {}
 
 outputs = []
 
@@ -70,7 +70,7 @@ class Channel(object):
     def save_pin(self, pin):
         pins = self.saved_pins
         if pins is None:
-            pins = [] 
+            pins = []
         filtered_pins = list(filter(lambda p: p['created'] == pin['created'], pins))
         if len(filtered_pins) > 0:
             LOGGER.info('Message already pinned; skipping')
@@ -101,39 +101,46 @@ def process_hello(data):
     LOGGER.info('I am in these channels: {}'.format(', '.join(['#' + c['name'] for c in channels])))
     for c in channels:
         ch = Channel(c)
-        CHANNELS.append(ch)
+        CHANNELS[ch.ident] = ch
         ch.fetch_pins()
         LOGGER.info('  {} has {} pins.'.format(ch.pretty_name, len(ch.pins)))
         ch.unpin_oldest_if_needed()
 
 def process_channel_joined(data):
-    LOGGER.info('Joined #{}'.format(data['channel']['name']))
     ch = Channel(data['channel'])
-    CHANNELS.append(ch)
+    LOGGER.info('Joined {}'.format(ch.pretty_name))
+    CHANNELS[ch.ident] = ch
     ch.fetch_pins()
     ch.unpin_oldest_if_needed()
 
 def process_pin_added(data):
     LOGGER.info('Pin added')
-    ch.fetch_pins()
-    ch.unpin_oldest_if_needed()
+    try:
+        ch = CHANNELS[data['channel_id']]
+        ch.fetch_pins()
+        ch.unpin_oldest_if_needed()
+    except KeyError as e:
+        LOGGER.error("Couldn't get channel for id {}: {}".format(data['channel_id'], e))
 
 def process_message(data):
     try:
         text = data['text'].strip()
-    except KeyError:
-        # TODO: Make this better.
+    except KeyError as e:
+        LOGGER.error("Couldn't extract text from message event: {}".format(e))
+        LOGGER.debug(json.dumps(data, indent=2))
         return
-    LOGGER.info('Received message: {}'.format(text))
+
+    LOGGER.debug('Received message: {}'.format(text))
 
     if text == '!lore':
         try:
-            ch = list(filter(lambda c: c.ident == data['channel'], CHANNELS))[0]
+            chid = data['channel']
+            ch = CHANNELS[chid]
             random_pin = _lore(ch)
             if random_pin:
-                outputs.append([data['channel'], random_pin])
-        except IndexError:
-            pass
+                outputs.append([chid, random_pin])
+        except KeyError as e:
+            LOGGER.error("Couldn't process !lore command: {}".format(e))
 
 #
 # Private
@@ -141,7 +148,9 @@ def process_message(data):
 
 def _lore(channel):
     pins = channel.saved_pins
+    if not pins:
+        return None
     random_pin = random.choice(pins)
     if random_pin['type'] == 'message':
         return random_pin['message']['permalink']
-    return random_pin
+    return '```\n' + str(random_pin) + '\n```'
