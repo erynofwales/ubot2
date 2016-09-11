@@ -5,14 +5,22 @@
 import json
 import logging
 import os.path
+import random
 import re
 
 HEARTS_FILE = 'hearts.json'
 
 PLUSES = ['++', '<3', '&lt;3', ':heart:', ':yellow_heart:', ':green_heart:',  ':blue_heart:', ':purple_heart:', '❤️', '💛', '💚', '💙', '💜']
 MINUSES = ['--', '–', '—', '</3', '&lt;/3', ':broken_heart:', '💔']
+SASS = ['r u srs rn', 'no', 'noooope']
 
 LOGGER = logging.getLogger('hearts')
+
+LEADERS_RE = re.compile('!(top|bottom)(\d+)')
+WHITESPACE_RE = re.compile('\s+')
+LINK_RE = re.compile(r'<(?P<type>[@#])(?P<id>[A-Z0-9]+)(\|(?P<name>\w+))?>')
+VAR_RE = re.compile(r'<!(?P<name>\w+)>')
+EMOJI_RE = re.compile(r':\w+:')
 
 outputs = []
 
@@ -23,14 +31,20 @@ def process_message(data):
         # TODO: Make this better.
         return
 
-    if text == '!top5':
-        scores = top5()
-        outputs.append([data['channel'], scores])
-        return
-
-    if text == '!bottom5':
-        scores = bottom5()
-        outputs.append([data['channel'], scores])
+    leaders_m = LEADERS_RE.match(text)
+    if leaders_m:
+        top = leaders_m.group(1) == 'top'
+        try:
+            n = int(leaders_m.group(2))
+        except ValueError:
+            outputs.append([data['channel'], random.choice(SASS)])
+            return
+        if n == 0:
+            outputs.append([data['channel'], random.choice(SASS)])
+            return
+        scores = leaders(n, top)
+        if scores:
+            outputs.append([data['channel'], scores])
         return
 
     if text.startswith('!erase'):
@@ -76,9 +90,23 @@ def calculate_score_and_find_operators(text):
 
     did_change = original_text != text
     if did_change:
-        # Strip the trailing :
-        if text.endswith(':'):
-            text = text[:-1]
+        # Strip off the trailing : if the message is a user or group
+        for regex in [LINK_RE, VAR_RE]:
+            m = regex.match(text)
+            if not m:
+                continue
+            # string is just a username with a colon at the end so strip off the colon
+            if (m.end() == len(text)-1) and text.endswith(':'):
+                text = text[:-1]
+                break
+
+        # If the remaining string is all emojis, ignore it
+        tokenized = WHITESPACE_RE.split(text)
+        emoji_matches = map(EMOJI_RE.match, tokenized)
+        all_emoji = all(emoji_matches)
+        if all_emoji:
+            return None, None
+
         return score, text
     else:
         return None, None
@@ -98,30 +126,23 @@ def has_operator(text, operators):
             return op, False
     return None, None
 
-def top5():
-    data = read_data()
-    items = [(score, name) for name, score in data.items()]
-    items.sort(key=lambda item: item[0], reverse=True)
-    out = ''
-    for idx in range(5):
-        try:
-            item = items[idx]
-            out += '{}. _{}_ : {}\n'.format(idx+1, item[1], item[0])
-        except IndexError:
-            break
-    return out
+def leaders(n, top=True):
+    if n == 0:
+        return
 
-def bottom5():
     data = read_data()
     items = [(score, name) for name, score in data.items()]
-    items.sort(key=lambda item: item[0])
+    items.sort(key=lambda item: item[0], reverse=top)
     out = ''
-    for idx in range(4, -1, -1):
+
+    for idx in range(n):
         try:
             item = items[idx]
-            out += '{}. _{}_ : {}\n'.format(len(items)-idx, item[1], item[0])
+            rank = idx + 1 if top else len(items) - idx
+            out += '{}. _{}_ : {}\n'.format(rank, item[1], item[0])
         except IndexError:
             break
+
     return out
 
 #
