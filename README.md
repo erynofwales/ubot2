@@ -39,7 +39,7 @@ Installation
 
 3. Configure rtmbot (https://api.slack.com/bot-users)
 
-        cp doc/example-config/rtmbot.conf .
+        cp docs/example-config/rtmbot.conf .
         vi rtmbot.conf
           SLACK_TOKEN: "xoxb-11111111111-222222222222222"
 
@@ -53,7 +53,7 @@ Plugins can be installed as .py files in the ```plugins/``` directory OR as a .p
 To install the example 'repeat' plugin
 
     mkdir plugins/repeat
-    cp doc/example-plugins/repeat.py plugins/repeat
+    cp docs/example-plugins/repeat.py plugins/repeat/
 
 The repeat plugin will now be loaded by the bot on startup.
 
@@ -71,6 +71,8 @@ Plugins are callback based and respond to any event sent via the rtm websocket. 
 This will print the incoming message json (dict) to the screen where the bot is running.
 
 Plugins having a method defined as ```catch_all(data)``` will receive ALL events from the websocket. This is useful for learning the names of events and debugging.
+
+Note: If you're using Python 2.x, the incoming data should be a unicode string, be careful you don't coerce it into a normal str object as it will cause errors on output. You can add `from __future__ import unicode_literals` to your plugin file to avoid this.
 
 ####Outgoing data
 Plugins can send messages back to any channel, including direct messages. This is done by appending a two item array to the outputs global array. The first item in the array is the channel ID and the second is the message text. Example that writes "hello world" when the plugin is started:
@@ -91,6 +93,19 @@ Plugins can also run methods on a schedule. This allows a plugin to poll for upd
 
 ####Plugin misc
 The data within a plugin persists for the life of the rtmbot process. If you need persistent data, you should use something like sqlite or the python pickle libraries.
+
+####Direct API Calls
+You can directly call the Slack web API in your plugins by including the following import:
+
+    from client import slack_client
+
+You can also rename the client on import so it can be easily referenced like shown below:
+
+    from client import slack_client as sc
+
+Direct API calls can be called in your plugins in the following form:
+    
+    sc.api_call("API.method", "parameters")
 
 ####Todo:
 Some rtm data should be handled upstream, such as channel and user creation. These should create the proper objects on-the-fly.
