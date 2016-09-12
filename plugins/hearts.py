@@ -8,6 +8,8 @@ import os.path
 import random
 import re
 
+from service import slack
+
 HEARTS_FILE = 'hearts.json'
 
 PLUSES = ['++', '<3', '&lt;3', ':heart:', ':yellow_heart:', ':green_heart:',  ':blue_heart:', ':purple_heart:', '❤️', '💛', '💚', '💙', '💜']
@@ -18,11 +20,23 @@ LOGGER = logging.getLogger('hearts')
 
 LEADERS_RE = re.compile('!(top|bottom)(\d+)')
 WHITESPACE_RE = re.compile('\s+')
-LINK_RE = re.compile(r'<(?P<type>[@#])(?P<id>[A-Z0-9]+)(\|(?P<name>\w+))?>')
-VAR_RE = re.compile(r'<!(?P<name>\w+)>')
+LINK_RE = re.compile(r'<(?P<type>[@#!])(?P<id>\w+)(\|(?P<name>\w+))?>')
 EMOJI_RE = re.compile(r':\w+:')
 
+# rtmbot interface
 outputs = []
+
+USERS = []
+CHANNELS = []
+
+#
+# RTM
+#
+
+def process_hello(data):
+    global USERS
+    USERS = slack.users()
+    CHANNELS = slack.channels()
 
 def process_message(data):
     try:
@@ -65,6 +79,10 @@ def process_message(data):
         else:
             outputs.append([data['channel'], 'No score change for _{}_.'.format(name)])
 
+#
+# Hearts
+#
+
 def calculate_score_and_find_operators(text):
     original_text = text
     score = 0
@@ -87,28 +105,25 @@ def calculate_score_and_find_operators(text):
         if not found:
             break
 
-
     did_change = original_text != text
     if did_change:
-        # Strip off the trailing : if the message is a user or group
-        for regex in [LINK_RE, VAR_RE]:
-            m = regex.match(text)
-            if not m:
-                continue
-            # string is just a username with a colon at the end so strip off the colon
-            if (m.end() == len(text)-1) and text.endswith(':'):
-                text = text[:-1]
-                break
+        tokenized = WHITESPACE_RE.split(text)
 
         # If the remaining string is all emojis, ignore it
-        tokenized = WHITESPACE_RE.split(text)
         emoji_matches = map(EMOJI_RE.match, tokenized)
         all_emoji = all(emoji_matches)
         if all_emoji:
+            LOGGER.debug('Message is all emoji, skipping')
             return None, None
 
+        tokenized = map(strip_colon, tokenized)
+        tokenized = map(swap_links_and_vars, tokenized)
+
+        text = ' '.join(tokenized)
+        LOGGER.debug('Score {} for message: {}'.format(score, text))
         return score, text
     else:
+        LOGGER.debug('No score adjustment for message: {}'.format(text))
         return None, None
 
 def strip_operator(text, operator, is_prefix):
@@ -125,6 +140,56 @@ def has_operator(text, operators):
         elif text.endswith(op):
             return op, False
     return None, None
+
+def strip_colon(item):
+    '''Remove trailing colon from messages that @ a particular user.'''
+    m = LINK_RE.match(item)
+    if not m:
+        return item
+    if not (m.end() == (len(item)-1) and item.endswith(':')):
+        return item
+    return item[:-1]
+
+def swap_links_and_vars(item):
+    '''
+    Swap links and variables for their names. This is for things like @eryn, #general, and !everyone.
+    '''
+    m = LINK_RE.match(item)
+    if not m:
+        return item
+
+    link_type = m.group('type')
+
+    # Users
+    if link_type == '@':
+        name = m.group('name')
+        if name:
+            return name
+        ident = m.group('id')
+        users = [u for u in USERS if u['id'] == ident]
+        try:
+            return users[0]['name']
+        except IndexError:
+            return item
+
+    # Channels
+    elif link_type == '#':
+        name = m.group('name')
+        if name:
+            return name
+        ident = m.group('id')
+        channels = [c for c in CHANNELS if c['id'] == ident]
+        try:
+            return channels[0]['name']
+        except IndexError:
+            return item
+
+    # Variables (e.g. everyone, channel, here, etc)
+    elif link_type == '!':
+        name = m.group('name')
+        return name if name else m.group('id')
+
+    return item
 
 def leaders(n, top=True):
     if n == 0:

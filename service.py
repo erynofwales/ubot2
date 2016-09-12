@@ -38,6 +38,12 @@ class SlackService(object):
         json = self.__extract_json(r)
         return json is not None
 
+    def users(self):
+        params = self.__params()
+        r = requests.get(self.__url('users.list'), params=params)
+        json = self.__extract_json(r)
+        return json['members'] if json else None
+
     #
     # Private
     #
