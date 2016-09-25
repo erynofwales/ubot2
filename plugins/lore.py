@@ -178,5 +178,7 @@ def _scribe():
 def _extract_lore(obj):
     if obj['type'] == 'message':
         return obj['message']['permalink']
+    elif obj['type'] == 'file':
+        return obj['file']['permalink']
     # If nothing matches just return the object itself as a preformatted JSON object
-    return '```\n' + obj + '\n```'
+    return '```\n' + json.dumps(obj, indent=2) + '\n```'
