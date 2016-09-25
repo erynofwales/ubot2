@@ -33,7 +33,7 @@ class Channel(object):
 
     @property
     def pin_file(self):
-        return 'pins.{}.json'.format(self.name)
+        return 'lore.json'
 
     @property
     def saved_pins(self):
