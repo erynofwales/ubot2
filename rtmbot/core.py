@@ -37,13 +37,14 @@ class RtmBot(object):
             path = os.path.join(os.getcwd(), self.directory)
             self.directory = os.path.abspath(path)
 
+        self.debug = self.config.get('DEBUG', False)
+
         # establish logging
         log_file = config.get('LOGFILE', 'rtmbot.log')
         logging.basicConfig(filename=log_file,
-                            level=logging.INFO,
+                            level=logging.DEBUG if self.debug else logging.INFO,
                             format='%(asctime)s %(module)s %(levelname)s: %(message)s')
         logging.info('Initialized in: {}'.format(self.directory))
-        self.debug = self.config.get('DEBUG', False)
 
         # initialize stateful fields
         self.last_ping = 0
@@ -51,8 +52,7 @@ class RtmBot(object):
         self.slack_client = SlackClient(self.token)
 
     def _dbg(self, debug_string):
-        if self.debug:
-            logging.info(debug_string)
+        logging.debug(debug_string)
 
     def connect(self):
         """Convenience method that creates Server instance"""
@@ -149,9 +149,11 @@ class Plugin(object):
 
     def register_jobs(self):
         if 'crontable' in dir(self.module):
-            for interval, function in self.module.crontable:
+            crontable = self.module.crontable
+            if crontable:
+                logging.info('registering crontable: %s', self.module.crontable)
+            for interval, function in crontable:
                 self.jobs.append(Job(interval, eval("self.module." + function), self.debug))
-            logging.info(self.module.crontable)
             self.module.crontable = []
         else:
             self.module.crontable = []
