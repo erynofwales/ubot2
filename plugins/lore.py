@@ -16,7 +16,8 @@ MAX_PINS = 100
 LORE_FILE = 'lore.json'
 CHANNELS = {}
 
-LORE_RE = re.compile(r'!lore(\s+(?P<count>\d+))')
+LORE_RE = re.compile(r'!lore\s+(?P<count>\d+)')
+SCRIBE_RE = re.compile(r'!scribe\s+(?P<message>.*)')
 
 outputs = []
 
@@ -145,8 +146,13 @@ def process_message(data):
             if lore:
                 for l in lore:
                     outputs.append([chid, l])
+            return
         except KeyError as e:
             LOGGER.error("Couldn't process !lore command: {}".format(e))
+
+    m = SCRIBE_RE.match(text)
+    if m:
+        _scribe()
 
 #
 # Private
@@ -164,6 +170,10 @@ def _lore(channel, count):
         lore = _extract_lore(random_lore)
         out_lore.add(lore)
     return out_lore
+
+def _scribe():
+    LOGGER.error('!scribe not implemented yet :-(')
+    pass
 
 def _extract_lore(obj):
     if obj['type'] == 'message':
