@@ -5,6 +5,7 @@
 import json
 import logging
 import random
+import re
 
 import requests
 
@@ -12,7 +13,10 @@ from service import slack
 
 LOGGER = logging.getLogger('cookie')
 MAX_PINS = 100
+LORE_FILE = 'lore.json'
 CHANNELS = {}
+
+LORE_RE = re.compile(r'!lore(\s+(?P<count>\d+))')
 
 outputs = []
 
@@ -132,13 +136,15 @@ def process_message(data):
 
     LOGGER.debug('Received message: {}'.format(text))
 
-    if text == '!lore':
+    m = LORE_RE.match(text)
+    if m:
         try:
             chid = data['channel']
             ch = CHANNELS[chid]
-            random_pin = _lore(ch)
-            if random_pin:
-                outputs.append([chid, random_pin])
+            lore = _lore(ch, int(m.group('count')))
+            if lore:
+                for l in lore:
+                    outputs.append([chid, l])
         except KeyError as e:
             LOGGER.error("Couldn't process !lore command: {}".format(e))
 
@@ -146,11 +152,21 @@ def process_message(data):
 # Private
 #
 
-def _lore(channel):
+def _lore(channel, count):
     pins = channel.saved_pins
     if not pins:
         return None
-    random_pin = random.choice(pins)
-    if random_pin['type'] == 'message':
-        return random_pin['message']['permalink']
-    return '```\n' + str(random_pin) + '\n```'
+    if len(pins) < count:
+        return [_extract_lore(p) for p in pins]
+    out_lore = set()
+    while len(out_lore) < count:
+        random_lore = random.choice(pins)
+        lore = _extract_lore(random_lore)
+        out_lore.add(lore)
+    return out_lore
+
+def _extract_lore(obj):
+    if obj['type'] == 'message':
+        return obj['message']['permalink']
+    # If nothing matches just return the object itself as a preformatted JSON object
+    return '```\n' + obj + '\n```'
