@@ -10,8 +10,22 @@ class SlackService(object):
 
     _API_BASE = 'https://slack.com/api'
 
-    def __init__(self, token):
+    def __init__(self, token, host):
         self.token = token
+        self.host = host
+
+    def permalink(self, channel, message):
+        '''
+        Generate a permalink to the given message object in the given channel.
+        Channel should be the name of the channel, without the leading '#'.
+        `message` should have a `ts` field.
+        '''
+        try:
+            ts = message['ts']
+        except KeyError:
+            return
+        ts = ts.replace('.', '')
+        return 'https://{}/archives/{}/p{}'.format(self.host, channel, ts)
 
     #
     # Endpoints
