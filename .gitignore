@@ -1,7 +1,7 @@
 *.pyc
 /rtmbot.conf
 /build/**
-*.log
+*.log*
 env
 .tox
 *.un~
@@ -15,3 +15,5 @@ hearts.json
 # Persistence for the cookie plugin.
 pins.*.json
 lore.json
+# Persistence for the bomb plugin.
+bomb.*.json
