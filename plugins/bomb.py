@@ -35,7 +35,7 @@ def process_hello(data):
             COLLECTIONS[parts[1]] = json.load(f)
 
     collections_re = '|'.join(COLLECTIONS.keys())
-    collections_re = r'(?P<collection>{})'.format(collection_commands_re)
+    collections_re = r'(?P<collection>{})'.format(collections_re)
     global CMD_RE
     CMD_RE = re.compile(r'!{}(\s+(me|(?P<count>\d+)))?'.format(collections_re))
     ADD_RE = re.compile(r'!bombadd\s+{}\s+(?P<item>\S+)'.format(collections_re))
