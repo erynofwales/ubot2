@@ -5,10 +5,14 @@ import glob
 import os
 import time
 import logging
+import logging.handlers
 
 from slackclient import SlackClient
 
 sys.dont_write_bytecode = True
+
+LOGFILE_MAX_BYTES = 50 * 1024 * 1024    # 50 MB
+LOGFILE_BACKUPS = 5
 
 
 class RtmBot(object):
@@ -40,10 +44,14 @@ class RtmBot(object):
         self.debug = self.config.get('DEBUG', False)
 
         # establish logging
+        root_logger = logging.getLogger()
         log_file = config.get('LOGFILE', 'rtmbot.log')
-        logging.basicConfig(filename=log_file,
-                            level=logging.DEBUG if self.debug else logging.INFO,
-                            format='%(asctime)s %(module)s %(levelname)s: %(message)s')
+        root_handler = logging.handlers.RotatingFileHandler(log_file, maxBytes=LOGFILE_MAX_BYTES, backupCount=LOGFILE_BACKUPS)
+        root_formatter = logging.Formatter('%(asctime)s %(module)s %(levelname)s: %(message)s')
+        root_handler.setFormatter(root_formatter)
+        root_logger.addHandler(root_handler)
+        root_logger.setLevel(logging.DEBUG if self.debug else logging.INFO)
+
         logging.info('Initialized in: {}'.format(self.directory))
 
         # initialize stateful fields
