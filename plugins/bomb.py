@@ -11,10 +11,14 @@ import re
 
 LOGGER = logging.getLogger(__name__)
 CMD_RE = None
+ADD_RE = None
 
 COLLECTIONS = {}
 
+#
 # rtmbot interface
+#
+
 outputs = []
 
 def process_hello(data):
@@ -30,10 +34,11 @@ def process_hello(data):
         with open(c, 'r') as f:
             COLLECTIONS[parts[1]] = json.load(f)
 
-    collection_commands_re = '|'.join(COLLECTIONS.keys())
-    collection_commands_re = r'(?P<collection>{})'.format(collection_commands_re)
+    collections_re = '|'.join(COLLECTIONS.keys())
+    collections_re = r'(?P<collection>{})'.format(collection_commands_re)
     global CMD_RE
-    CMD_RE = re.compile(r'!{}(\s+(me|(?P<count>\d+)))?'.format(collection_commands_re))
+    CMD_RE = re.compile(r'!{}(\s+(me|(?P<count>\d+)))?'.format(collections_re))
+    ADD_RE = re.compile(r'!bombadd\s+{}\s+(?P<item>\S+)'.format(collections_re))
 
 def process_message(data):
     try:
@@ -43,9 +48,17 @@ def process_message(data):
         return
 
     match = CMD_RE.match(text)
-    if not match:
-        return
+    if match:
+        _handle_bomb(match, data['channel'])
+    match = ADD_RE.match(text)
+    if match:
+        _handle_add(match, data['channel'])
 
+#
+# Bomb bomb bomb
+#
+
+def _handle_bomb(match, channel):
     collection = match.group('collection')
 
     count = match.group('count')
@@ -61,4 +74,19 @@ def process_message(data):
     LOGGER.debug('I HAVE BOMB FOOD: %s', items)
 
     for i in items:
-        outputs.append([data['channel'], i])
+        outputs.append([channel, i])
+
+def _handle_add(match, channel):
+    collection = match.group('collection')
+    item = match.group('item')
+    LOGGER.debug('Adding item to %s: %s', collection, item)
+    COLLECTIONS[collection].append(item)
+    _dump_collection(collection, COLLECTIONS[collection])
+    outputs.append([channel, '_Saved {} to {} collection_'.format(item, collection)])
+
+def _dump_collection(collection, items):
+    LOGGER.info('Saving collection %s: %d item%s', collection, 's' if len(items) != 1 else '')
+    filename = 'bomb.{}.json'.format(collection)
+    with open(filename, 'w') as f:
+        json.dump(f, items)
+
