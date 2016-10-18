@@ -34,11 +34,8 @@ def process_hello(data):
         with open(c, 'r') as f:
             COLLECTIONS[parts[1]] = json.load(f)
 
-    collections_re = '|'.join(COLLECTIONS.keys())
-    collections_re = r'(?P<collection>{})'.format(collections_re)
-    global CMD_RE
-    CMD_RE = re.compile(r'!{}(\s+(me|(?P<count>\d+)))?'.format(collections_re))
-    ADD_RE = re.compile(r'!bombadd\s+{}\s+(?P<item>\S+)'.format(collections_re))
+    _build_regexes(COLLECTIONS.keys())
+
 
 def process_message(data):
     try:
@@ -47,16 +44,30 @@ def process_message(data):
         LOGGER.error('Missing "text" key in data.')
         return
 
-    match = CMD_RE.match(text)
-    if match:
-        _handle_bomb(match, data['channel'])
-    match = ADD_RE.match(text)
-    if match:
-        _handle_add(match, data['channel'])
+    try:
+        match = CMD_RE.match(text)
+        if match:
+            _handle_bomb(match, data['channel'])
+        match = ADD_RE.match(text)
+        if match:
+            _handle_add(match, data['channel'])
+    except AttributeError:
+        if not CMD_RE or not ADD_RE:
+            LOGGER.debug("Regexes weren't loaded. Something went wrong.")
+            # Attempt to rebuild the regexes again...
+            _build_regexes(COLLECTIONS.keys())
 
 #
 # Bomb bomb bomb
 #
+
+def _build_regexes(collections):
+    collections_re = '|'.join(collections)
+    collections_re = r'(?P<collection>{})'.format(collections_re)
+    global CMD_RE
+    CMD_RE = re.compile(r'!{}(\s+(me|(?P<count>\d+)))?'.format(collections_re))
+    global ADD_RE
+    ADD_RE = re.compile(r'!bombadd\s+{}\s+(?P<item>\S+)'.format(collections_re))
 
 def _handle_bomb(match, channel):
     collection = match.group('collection')
