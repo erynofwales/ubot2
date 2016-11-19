@@ -1,6 +1,7 @@
 # service.py
 # Eryn Wells <eryn@erynwells.me>
 
+import logging
 import requests
 
 slack = None
@@ -13,6 +14,7 @@ class SlackService(object):
     def __init__(self, token, host):
         self.token = token
         self.host = host
+        self.logger = logging.getLogger('service')
 
     def permalink(self, channel, message):
         '''
@@ -43,11 +45,13 @@ class SlackService(object):
         json = self.__extract_json(r)
         return json['items'] if json else None
 
-    def remove_pin(self, pin):
+    def remove_pin(self, pin, channel):
         params = self.__params()
+        params['channel'] = channel
         if pin['type'] == 'message':
-            params['channel'] = pin['channel']
             params['timestamp'] = pin['message']['ts']
+        elif pin['type'] == 'file':
+            params['file'] = pin['file']['id']
         r = requests.get(self.__url('pins.remove'), params=params)
         json = self.__extract_json(r)
         return json is not None
@@ -77,5 +81,6 @@ class SlackService(object):
             return None
         json = response.json()
         if not json['ok']:
+            self.logger.info('Response not okay: %s', json['error'])
             return None
         return json

@@ -71,7 +71,7 @@ class Channel(object):
         return oldest_pin
 
     def remove_pin(self, pin):
-        result = slack.remove_pin(pin)
+        result = slack.remove_pin(pin, self.ident)
         return result
 
     def save_pin(self, pin):
