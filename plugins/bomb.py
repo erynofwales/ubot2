@@ -91,9 +91,12 @@ def _handle_add(match, channel):
     collection = match.group('collection')
     item = match.group('item')
     LOGGER.debug('Adding item to %s: %s', collection, item)
-    COLLECTIONS[collection].append(item)
-    _dump_collection(collection, COLLECTIONS[collection])
-    outputs.append([channel, '_Saved {} to {} collection_'.format(item, collection)])
+    if item not in COLLECTIONS[collection]:
+        COLLECTIONS[collection].append(item)
+        _dump_collection(collection, COLLECTIONS[collection])
+        outputs.append([channel, 'Saved _{}_ to _{}_ collection'.format(item, collection)])
+    else:
+        outputs.append([channel, '_{}_ collection already contains _{}_'.format(collection, item)])
 
 def _dump_collection(collection, items):
     LOGGER.info('Saving collection %s: %d item%s', collection, 's' if len(items) != 1 else '')
