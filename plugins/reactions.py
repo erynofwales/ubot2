@@ -19,9 +19,8 @@ config = None
 outputs = []
 
 def process_message(data):
-    LOGGER.debug(config)
-    if 'reactions_root' not in config:
-        LOGGER.error('Please define the root URL where reactions live in config.reactions_root')
+    if 'root' not in config:
+        LOGGER.error('Please define the root URL where reactions live in config.root')
         return
 
     try:
@@ -39,7 +38,7 @@ def process_message(data):
         LOGGER.info('Reaction command but no reaction.')
 
     for ext in EXTENSIONS:
-        url = '{}/{}{}'.format(config['reactions_root'], reaction, ext)
+        url = '{}/{}{}'.format(config['root'], reaction, ext)
         LOGGER.debug('Checking url: %s', url)
         r = requests.head(url)
         if r.status_code != 200:

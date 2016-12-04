@@ -8,16 +8,24 @@ import subprocess
 
 LOGGER = logging.getLogger('cowsay')
 
-COWSAY_PATH = '/usr/games/cowsay'
 MESSAGE_RE = re.compile(r'(!cowsay)(.*)')
 
+#
+# rtmbot interface
+#
+
+config = None
 outputs = []
 
 def process_message(data):
+    if 'path' not in config:
+        LOGGER.error('Please define config.path pointing to the cowsay binary.')
+        return
+
     try:
         text = data['text']
     except KeyError:
-        LOGGER.error('Missing "text" key in data.')
+        LOGGER.debug('Missing "text" key in data.')
         return
 
     # find the message
@@ -33,7 +41,7 @@ def process_message(data):
 
     # cowsay it up
     try:
-        out = subprocess.check_output([COWSAY_PATH, msg]).decode()
+        out = subprocess.check_output([config['path'], msg]).decode()
     except subprocess.CalledProcessError as e:
         LOGGER.error('Error running cowsay. (%d)', e.returncode)
         return
