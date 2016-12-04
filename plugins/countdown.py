@@ -6,7 +6,7 @@ import logging
 import re
 
 LOGGER = logging.getLogger('countdown')
-MESSAGE_RE = re.compile(r'(!countdown)\s+(\d+)')
+COUNTDOWN_RE = re.compile(r'(!countdown)\s+(\d+|stop)\s*')
 
 # rtmbot interface
 crontable = []
@@ -25,22 +25,31 @@ def process_message(data):
         LOGGER.error('Missing "text" key in data.')
         return
 
-    match = MESSAGE_RE.match(text)
+    match = COUNTDOWN_RE.match(text)
     if not match:
         return
+
     cmd = match.group(1)
     if not cmd:
         return
-    try:
-        n = int(match.group(2))
-    except ValueError:
-        LOGGER.error('Expected number but got {}'.format(match.group(2)))
-        return
 
-    _setup_timer(data['channel'], n)
+    arg = match.group(2)
+    if arg == 'stop':
+        _kill_countdowns()
+        outputs.append([data['channel'], 'Stopped all countdowns.'])
+    else:
+        try:
+            n = int(match.group(2))
+        except ValueError:
+            LOGGER.error('Expected number but got {}'.format(match.group(2)))
+            return
+        _setup_timer(data['channel'], n)
 
 def _setup_timer(channel, time):
     COUNTDOWNS.append([channel, time])
+
+def _kill_countdowns():
+    del COUNTDOWNS[:]
 
 def _do_countdown():
     global COUNTDOWNS
