@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 # Eryn Wells <eryn@erynwells.me>
 
+import json
 import logging
+import os
+import re
 from service import slack
 
 HEARTS_FILE = 'hearts.json'
@@ -61,7 +64,7 @@ def process_message(data):
     if score_pair is not None:
         name = score_pair[0]
         score = score_pair[1]
-        LOGGER.info('Adding %s to %s', score, name)
+        LOG.info('Adding %s to %s', score, name)
         if score != 0:
             score = update_item(name, score)
             outputs.append([data['channel'], '_{}_ now has a score of {}.'.format(name, score)])
@@ -117,16 +120,22 @@ def t_NAME(t):
         if name:
             t.value = name
         elif idee:
-            # TODO: Look up the user name.
-            t.value = idee
+            users = [u for u in USERS if u['id'] == idee]
+            try:
+                t.value = users[0]['name']
+            except IndexError:
+                t.value = idee
         return t
     elif typ == '#':
         # It's a channel!
         if name:
             t.value = name
         elif idee:
-            # TODO: Look up the channel name.
-            t.value = idee
+            channels = [c for c in CHANNELS if c['id'] == idee]
+            try:
+                t.value = channels[0]['name']
+            except IndexError:
+                t.value = idee
         return t
     elif typ == '!':
         # It's a variable!
@@ -136,7 +145,7 @@ def t_NAME(t):
         return None
 
 def t_STR(t):
-    r'"[^"]*"|' r"'[^']*'"
+    r'"[^"]*"|' r"'[^']*'|" r'“[^“”]*”|' r'‘[^‘’]*’'
     LOG.debug('t_STR {}'.format(t.value))
     t.value = t.value[1:-1]
     return t
