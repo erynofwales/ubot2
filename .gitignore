@@ -10,6 +10,9 @@ tests/.cache
 .coverage
 .cache
 
+plugins/parser.out
+plugins/parsetab.py
+
 # Persistence for the hearts plugin.
 hearts.json
 # Persistence for the cookie plugin.
