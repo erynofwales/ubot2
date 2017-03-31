@@ -124,8 +124,8 @@ class RtmBot(object):
             sys.path.insert(0, plugin_dir)
         for plugin in glob.glob(os.path.join(plugin_dir, '*.py')) + \
                 glob.glob(os.path.join(plugin_dir, '*', '*.py')):
-            logging.info(plugin)
             name = plugin.split(os.sep)[-1][:-3]
+            logging.info('Plugin %s: %s', name, plugin)
             if name in self.config:
                 logging.info("config found for: " + name)
             plugin_config = self.config.get(name, {})
