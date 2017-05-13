@@ -13,6 +13,8 @@ LOGGER = logging.getLogger(__name__)
 CMD_RE = None
 ADD_RE = None
 
+MAX_BOMBS = 10
+
 COLLECTIONS = {}
 
 #
@@ -79,6 +81,9 @@ def _handle_bomb(match, channel):
         count = 3
     except TypeError:   # count is None
         count = 1
+
+    bombs = COLLECTIONS[collection]
+    count = min(MAX_BOMBS, len(bombs), count)
 
     LOGGER.info('Getting %d item%s from %s', count, '' if count == 1 else 's', collection)
     items = random.sample(COLLECTIONS[collection], count)
