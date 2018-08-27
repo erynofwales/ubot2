@@ -166,13 +166,10 @@ def _lore(channel, count):
     pins = channel.saved_pins
     if not pins:
         return None
-    if len(pins) < count:
-        return [_extract_lore(p) for p in pins]
-    out_lore = set()
-    while len(out_lore) < count:
-        random_lore = random.choice(pins)
-        lore = _extract_lore(random_lore)
-        out_lore.add(lore)
+    try:
+        out_lore = set(_extract_lore(l) for l in random.sample(pins, count))
+    except ValueError:
+        out_lore = [_extract_lore(p) for p in pins]
     return out_lore
 
 def _scribe():
