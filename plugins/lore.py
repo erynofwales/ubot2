@@ -16,7 +16,7 @@ MAX_PINS = 100
 MAX_LORE = 30
 LORE_FILE = 'lore.json'
 CHANNELS = {}
-ANGER_MESSAGES = [':anger:', ':angry:']
+ANGER_MESSAGES = [':anger:', ':angry:', 'glaring @ u']
 
 LORE_RE = re.compile(r'!lore\s+(?P<count>\d+)')
 SCRIBE_RE = re.compile(r'!scribe\s+(?P<message>.*)')
