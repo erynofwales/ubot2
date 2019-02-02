@@ -20,3 +20,4 @@ pins.*.json
 lore.json
 # Persistence for the bomb plugin.
 bomb.*.json
+nohup.out
