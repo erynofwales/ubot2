@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# vim: set fileencoding=utf-8:
 # Eryn Wells <eryn@erynwells.me>
 
 import json
