@@ -94,12 +94,18 @@ def leaders(n, top=True):
 # GRAMMAR
 #
 
-tokens = ('POP', 'NOP', 'NAME', 'WORD', 'STR')
+tokens = ('POP', 'DPOP', 'NOP', 'NAME', 'WORD', 'STR')
 
 def t_POP(t):
     r'\+\+|:((yellow|green|blue|purple)_)?heart:|<3|&lt;3'
     LOG.debug('t_POP {}'.format(t.value))
     t.value = 1
+    return t
+
+def t_DPOP(t):
+    r':(two|revolving)_hearts:'
+    LOG.debug('t_DPOP {}'.format(t.value))
+    t.value = 2
     return t
 
 def t_NOP(t):
@@ -191,6 +197,7 @@ def p_oplist_single(p):
 
 def p_op(p):
     '''op : POP
+          | DPOP
           | NOP'''
     p[0] = p[1]
     LOG.debug('op: {}'.format(p[1]))
@@ -292,6 +299,10 @@ class TestHearts(unittest.TestCase):
         self.check_result('abc :purple_heart:', 'abc', 1)
         self.check_result('abc :yellow_heart:', 'abc', 1)
         self.check_result('<3 abc', 'abc', 1)
+
+    def test_double_pops(self):
+        self.check_result('abc :two_hearts:', 'abc', 2)
+        self.check_result('abc :revolving_hearts:', 'abc', 2)
 
     def test_nops(self):
         self.check_result('-- abc', 'abc', -1)
