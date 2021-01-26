@@ -13,7 +13,6 @@ from service import slack
 
 LOGGER = logging.getLogger('cookie')
 MAX_PINS = 100
-MAX_LORE = 30
 LORE_FILE = 'lore.json'
 CHANNELS = {}
 ANGER_MESSAGES = [':anger:', ':angry:', 'glaring @ u']
@@ -161,8 +160,6 @@ def process_message(data):
 #
 
 def _lore(channel, count):
-    if count > MAX_LORE:
-        return [random.choice(ANGER_MESSAGES)]
     pins = channel.saved_pins
     if not pins:
         return None
